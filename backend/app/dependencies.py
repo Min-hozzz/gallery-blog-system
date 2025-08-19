@@ -5,19 +5,18 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import NullPool
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import select
 
-from backend.app.routers.auth import oauth2_scheme, SECRET_KEY, ALGORITHM
-from models.user import User
-from schemas.user import TokenData
+from .config import oauth2_scheme, SECRET_KEY, ALGORITHM
+from .models.user import User
+from .schemas.user import TokenData
 from datetime import datetime
 
 # 同步引擎（建表用）
 sync_engine = create_engine(
-    "mysql+pymysql://project-database:zzt980815@124.71.4.24/project-database",
+    "mysql+pymysql://project-database:zzt980815@124.71.xxxx/project-database",
     pool_recycle=3600,  # 1小时重新连接
     pool_pre_ping=True, # 执行前检查连接
     connect_args={
@@ -27,7 +26,7 @@ sync_engine = create_engine(
 
 # 异步引擎（API用）
 async_engine = create_async_engine(
-    "mysql+asyncmy://project-database:zzt980815@124.71.4.24/project-database",
+    "mysql+asyncmy://project-database:zzt980815@124.71.xxxx/project-database",
     pool_recycle=3600,
     pool_pre_ping=True,
     poolclass=NullPool  # 禁用连接池（适合开发环境）
@@ -45,10 +44,10 @@ async def get_db():
         yield session
 
 # 同步数据库URL（建表用）
-SYNC_DB_URL = "mysql+pymysql://project-database:zzt980815@124.71.4.24/project-database"
+SYNC_DB_URL = "mysql+pymysql://project-database:zzt980815@124.71.xxxx/project-database"
 
 # 异步数据库URL（API用）
-ASYNC_DB_URL = "mysql+asyncmy://project-database:zzt980815@124.71.4.24/project-database"
+ASYNC_DB_URL = "mysql+asyncmy://project-database:zzt980815@124.71.xxxx/project-database"
 
 
 async def get_current_user(

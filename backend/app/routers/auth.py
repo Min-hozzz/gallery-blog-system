@@ -5,7 +5,6 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from pydantic import BaseModel  # 新增Pydantic模型导入
 from sqlalchemy.ext.asyncio.session import AsyncSession
-from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.expression import select
 
 from ..dependencies import get_db
@@ -13,6 +12,8 @@ from ..models.user import User
 from ..schemas.user import UserCreate
 from ..services import auth
 from ..services.auth import authenticate_user
+from ..config import oauth2_scheme, SECRET_KEY, ALGORITHM
+
 
 router = APIRouter(tags=["auth"])
 
@@ -25,13 +26,11 @@ class TokenResponse(BaseModel):
     token_type: str
 
 # ---------- 安全配置 ----------
-SECRET_KEY = "52d6bfec29b5efde4b09bf122cf2c2b33e39970e5c4167148eaf85bbec04057c"  # 生产环境应从环境变量读取
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 
 # ---------- 工具初始化 ----------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 
 # ---------- 模拟用户数据库 ----------
 fake_users_db = {

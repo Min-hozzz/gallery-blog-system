@@ -1,4 +1,5 @@
 from datetime import datetime
+from operator import truediv
 
 from fastapi import APIRouter, Depends,HTTPException, status
 from sqlalchemy.ext.asyncio.session import AsyncSession
@@ -8,11 +9,12 @@ from ..dependencies import get_db, get_current_user
 from ..models.blog import Post
 from ..models.user import User
 
-from backend.app.schemas.blog import PostResponse, PostCreate, PostUpdate
+from ..schemas.blog import PostResponse, PostCreate, PostUpdate
 
-router = APIRouter(prefix="/posts",tags=["blog"])
+router = APIRouter(tags=["blog"])
 
-@router.get("/posts",response_model=PostResponse)
+# 创建博客
+@router.post("/posts",response_model=PostResponse)
 async def create_post(
         post: PostCreate,
         db:AsyncSession = Depends(get_db)
@@ -23,6 +25,7 @@ async def create_post(
     await db.refresh(db_post)
     return db_post
 
+# id 指定博客
 @router.get("/posts/{post_id}",response_model=PostResponse)
 async def read_post(
         post_id: int,
@@ -38,6 +41,8 @@ async def read_post(
         raise HTTPException(404, "文章不存在或已被删除")
     return post
 
+
+# 更新博客
 @router.put("/posts/{post_id}",response_model=PostResponse)
 async def update_post(
         post_id: int,
@@ -66,10 +71,11 @@ async def update_post(
     await db.refresh(db_post)
     return db_post
 
+# 软删除
 @router.delete("/posts/{post_id}",status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(
         post_id: int,
-        current_user : User = Depends(get_current_user()),
+        current_user : User = Depends(get_current_user),
         db:AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -88,4 +94,40 @@ async def delete_post(
     await db.commit()
     return {"message": "文章已移至回收站"}
 
+# 回收路由
+@router.get("/trash",response_model=list[PostResponse])
+async def list_deleted_post(
+        db:AsyncSession = Depends(get_db),
+        current_user : User = Depends(get_current_user)
+):
+    # 查看已软删除的文章
+    res = await db.execute(
+        select(Post)
+        .where(Post.author_id == current_user.id)
+        .where(Post.is_deleted == True)
+    )
+    return res.scalars().all()
 
+
+
+# 恢复文章
+router.post("/post/{post_id}/restore")
+async def restore_post(
+        post_id: int,
+        db:AsyncSession = Depends(get_db),
+        current_user : User = Depends(get_current_user)
+):
+    res = await db.execute(
+        select(Post)
+        .where(Post.id == post_id)
+        .where(Post.is_deleted == True)
+    )
+    post = res.scalar_one_or_none()
+    if not post:
+        raise HTTPException(404,"post not found")
+    if post.author_id != current_user.id:
+        raise HTTPException(403,"not authorized")
+    post.is_deleted = False
+    post.deleted_at = None
+    await db.commit()
+    return {"message": "had restored"}
